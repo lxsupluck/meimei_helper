@@ -1,6 +1,9 @@
 #include "CollectThread.h"
+#include "Config.h"
 #include <iostream>
 #include <chrono>
+#include <string>
+#include "Logger.h"
 
 namespace meimei{
 
@@ -57,9 +60,15 @@ namespace meimei{
         modbus_.set_slave(slave_id_);
         std::cout << "[CollectThread] 已连接: " << device_ 
             << " 从站id: " << slave_id_ << std::endl;
+
+        csv_.open(config::CSV_DIR, config::CSV_INTERVAL_S, config::CSV_MAX_FILES);
+        csv_.force_record(0.0f, 0.0f);
         
         running_ = true;
         thread_ = std::thread(&CollectThread::run, this);
+
+
+
         return true;
 
     }
@@ -105,6 +114,23 @@ namespace meimei{
 
                 current_temp_ = temp;
                 current_humi_ = humi;
+
+                if (!first_csv_)
+                {
+                    csv_.force_record(temp, humi);
+                    first_csv_ = true;
+                }
+                else
+                {
+                    csv_.try_record(temp, humi);
+                }
+
+                // 告警
+                if (temp > temp_high_)
+                    LOG_WARN("温度过高: " + std::to_string(temp) + " ℃");
+                if (temp < temp_low_)
+                    LOG_WARN("温度过低: " + std::to_string(temp) + " ℃");
+
             
 
             std::cout << "[采集] 温度： " << current_temp_ << " ℃" 

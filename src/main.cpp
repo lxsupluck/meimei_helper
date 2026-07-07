@@ -1,10 +1,11 @@
 #include <iostream>
-#include "common/Types.h"
-#include "collect/CollectThread.h"
-#include "logger/Logger.h"
+#include "Types.h"
+#include "Config.h"
+#include "CollectThread.h"
+#include "Logger.h"
 #include <iomanip>
 #include <csignal>
-#include <thread> 
+#include <thread>
 #include <chrono>
 
 //全局指针
@@ -18,7 +19,7 @@ void signal_handler(int sig)
 
 int main()
 {
-    meimei::Logger::Instance().init("./meimei.log", meimei::LogLevel::DEBUG);
+    meimei::Logger::Instance().init(meimei::config::LOG_FILE_PATH, meimei::config::LOG_LEVEL);
     LOG_INFO("莓莓助手 启动成功！！！");
 
 
@@ -31,9 +32,16 @@ int main()
     //配置采集线程
     meimei::CollectThread collect;
 
-    collect.set_device("/dev/ttyUSB0", 9600, 'N', 8, 1);
+    collect.set_device(meimei::config::MODBUS_DEVICE, meimei::config::MODBUS_BAUD,
+                       meimei::config::MODBUS_PARITY, meimei::config::MODBUS_DATA_BITS,
+                       meimei::config::MODBUS_STOP_BITS);
 
-    collect.set_sensor_config(1, 0, 1, 0.1f, 0.1f, 2000);
+    collect.set_sensor_config(meimei::config::SENSOR_SLAVE_ID,
+                              meimei::config::SENSOR_TEMP_REG,
+                              meimei::config::SENSOR_HUMI_REG,
+                              meimei::config::SENSOR_TEMP_SCALE,
+                              meimei::config::SENSOR_HUMI_SCALE,
+                              meimei::config::SENSOR_INTERVAL_MS);
 
     g_collect = &collect;
 

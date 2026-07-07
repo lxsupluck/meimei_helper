@@ -4,7 +4,8 @@
 #include <atomic>
 #include <string>
 #include <cstdint>
-
+#include "CsvRecorder.h"
+#include "Config.h"
 #include "ModbusMaster.h"
 #include "Types.h"
 
@@ -53,12 +54,17 @@ namespace meimei
             float       humi_scale_;
             uint32_t    interval_ms_;
 
-            //最新读书
+            //最新读数
             std::atomic<float>  current_temp_{0.0f};
             std::atomic<float>  current_humi_{0.0f};
             std::atomic<bool> running_{false};
             std::thread thread_;
             ModbusMaster        modbus_;
+
+            CsvRecorder csv_;
+            float       temp_high_ = config::ALARM_TEMP_HIGH;
+            float       temp_low_  = config::ALARM_TEMP_LOW;
+            bool        first_csv_ = false;
 
     };
 
