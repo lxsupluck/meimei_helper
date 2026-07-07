@@ -11,6 +11,7 @@ pkg_check_modules(LIBMODBUS REQUIRED libmodbus)
 add_subdirectory(src)
 
 add_executable(meimei_helper src/main.cpp)
-target_link_libraries(meimei_helper PRIVATE meimei_common meimei_collect Threads::Threads)
+target_link_libraries(meimei_helper PRIVATE meimei_common meimei_logger meimei_collect Threads::Threads)
+
 target_include_directories(meimei_helper PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_options(meimei_helper PRIVATE -Wall -Wextra)

@@ -1,6 +1,7 @@
 #include <iostream>
 #include "common/Types.h"
 #include "collect/CollectThread.h"
+#include "logger/Logger.h"
 #include <iomanip>
 #include <csignal>
 #include <thread> 
@@ -17,6 +18,10 @@ void signal_handler(int sig)
 
 int main()
 {
+    meimei::Logger::Instance().init("./meimei.log", meimei::LogLevel::DEBUG);
+    LOG_INFO("莓莓助手 启动成功！！！");
+
+
     std::cout << "莓莓助手 启动成功！！！" << std::endl;
 
     //注册信号
@@ -41,6 +46,7 @@ int main()
     while(collect.is_running() && (sleep_counts < 10))
     {
         std::this_thread::sleep_for(std::chrono::seconds(6));
+         meimei::Logger::Instance().tick();   // 定期刷盘
         sleep_counts++;
     }
  
