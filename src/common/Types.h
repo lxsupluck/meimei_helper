@@ -54,23 +54,53 @@ namespace meimei{
     };
 
 
+    //=====================================================
+    //  Modbus配置
+    //=====================================================
+    struct ModbusConfig
+    {   
+        std::string device;             //串口设备
+        int         baud_rate;          //波特率
+        char        parity;             // 'N'/'E'/'O'
+        int         data_bits;   
+        int         stop_bits;
+        uint32_t    response_timeout_ms; //相应超时
+
+    };
+
+
     //=====================================
     // 传感器配置
+    // 传感器规格描述（纯配置，不含运行时读数
     //====================================
-    struct SensorConfig 
+
+    //通道配置
+    struct  Channel
     {
-        uint32_t    id;
-        std::string name;
-        uint8_t     slave_id;
-        uint16_t    register_addr;      //寄存器起始地址
-        uint16_t    register_count;     //寄存器数量
-        float       scale_factor;       //缩放系数
-        float       offset;             //偏移量
-        std::string unit;               //单位
-        uint32_t    interval_ms;        //采集间隔
-        float       alarm_high;         //高报阈值
-        float       alarm_low;          //低报阈值
-        uint32_t    filter_window;      //滤波窗口大小
+        uint16_t    register_addr;
+        float       scale_factor;
+        float       offset;
+        std::string unit;
+        float       alarm_high;
+        float       alarm_low;
+        // uint32_t    filter_window; 这个间隔决定不需要设置了
+    };
+
+    //从站设备，可具有多个通道。
+    struct Sensor
+    {
+        uint32_t                id;
+        std::string             name;
+        uint8_t                 slave_id;
+        std::vector<Channel>    channels;
+    };
+
+    // Sensor 运行期副本 — 预计slave_id对应的算寄存器范围
+    struct SensorRuntime
+    {
+        Sensor    config;
+        uint16_t  read_start;   // min(register_addr)
+        uint16_t  read_count;   // max - min + 1
     };
 
     //=========================================
@@ -144,19 +174,7 @@ namespace meimei{
 
     };
 
-    //=====================================================
-    //  Modbus配置
-    //=====================================================
-    struct ModbusConfig
-    {   
-        std::string device;             //串口设备
-        int         baud_rate;          //波特率
-        char        parity;             // 'N'/'E'/'O'
-        int         data_bits;   
-        int         stop_bits;
-        uint32_t    response_timeout_ms; //相应超时
 
-    };
     
     //=========================================
     //MQTT配置
@@ -198,13 +216,11 @@ namespace meimei{
         ModbusConfig                modbus;
         MqttConfig                  mqtt;
         VoiceConfig                 voice;
-        std::vector<SensorConfig>   sensors;
+        std::vector<Sensor>         sensors;
         std::string                 log_file;
-        LogLevel                   log_level;
+        LogLevel                    log_level;
         uint32_t                    watchdog_interval_ms;   //喂狗间隔
-        int                         watchdog_gpio_pin;      //喂狗引脚号                   
-
-
+        int                         watchdog_gpio_pin;      //喂狗引脚号
     };
 
     //=======================================

@@ -24,24 +24,40 @@ constexpr int         MODBUS_STOP_BITS = 1;
 // ============================================================
 // 温湿度传感器
 // ============================================================
-constexpr int      SENSOR_SLAVE_ID   = 1;
+constexpr int      THSENS_SLAVE_ID   = 1;
 constexpr int      SENSOR_TEMP_REG   = 0;
 constexpr int      SENSOR_HUMI_REG   = 1;
 constexpr float    SENSOR_TEMP_SCALE = 0.1f;
 constexpr float    SENSOR_HUMI_SCALE = 0.1f;
-constexpr uint32_t SENSOR_INTERVAL_MS = 2000;
+constexpr float    SENSOR_TEMP_OFFSET = 0.0f;
+constexpr float    SENSOR_HUMI_OFFSET = 0.0f;
+constexpr const char* TEMP_UNIT = "℃";
+constexpr const char* HUMI_UNIT = "%RH";
 
 // ============================================================
-// 告警阈值
+// 数据采集
+// ============================================================
+
+constexpr uint32_t SAMPLE_INTERVAL_MS = 100;        //快采样
+constexpr uint32_t OUTPUT_INTERVAL_MS = 5000;       //慢采样
+constexpr uint32_t TIME_TOLERANCE_MS   = 90;   // 时间容忍
+constexpr uint32_t SAMPLE_TOLERANCE_PERCENT = 90;   // 采样容忍
+constexpr uint32_t FIREST_WINDOW_BOUNDARY_MS = 1000;       // 首个输出窗口样本数
+
+
+// ============================================================
+// 温湿度度告警阈值
 // ============================================================
 constexpr float ALARM_TEMP_HIGH = 29.0f;
 constexpr float ALARM_TEMP_LOW  = 5.0f;
+
+constexpr float ALARM_HUMI_HIGH = 65.0f;
+constexpr float ALARM_HUMI_LOW  = 45.0f;
 
 // ============================================================
 // CSV 数据记录
 // ============================================================
 constexpr const char* CSV_DIR          = "./log";
-constexpr uint32_t    CSV_INTERVAL_S   = 60;
 constexpr int         CSV_MAX_FILES    = 30;
 
 // ============================================================

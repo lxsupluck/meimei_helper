@@ -4,3 +4,4 @@ build_rpi/
 *.a
 *.swp
 .vscode/
+docs/

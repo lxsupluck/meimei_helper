@@ -7,18 +7,14 @@
 
 namespace meimei{
 
+    //如果多个从设备我想置空，然后set_device 再赋值，就一个先不调用了，直接赋值。
+    //这样貌似每多一个Modbus总线就多一个线程？是否要修改？。目前就一个应该不用。
     CollectThread::CollectThread()
-        : device_("/dev/ttyUSB0")
-        , baud_(9600)
-        , data_bits_(8)
-        , stop_bits_(1)
-        , slave_id_(1)
-        , temp_reg_(1)
-        , humi_reg_(0)
-        , temp_scale_(0.1)
-        , humi_scale_(0.1)
-        , interval_ms_(2000)
-        , parity_('N')
+        : device_(config::MODBUS_DEVICE)
+        , baud_(config::MODBUS_BAUD)
+        , data_bits_(config::MODBUS_DATA_BITS)
+        , stop_bits_(config::MODBUS_STOP_BITS)
+        , parity_(config::MODBUS_PARITY)
     {}
 
     CollectThread::~CollectThread()
@@ -36,15 +32,24 @@ namespace meimei{
         stop_bits_  =   stop_bits;
     }
 
-    void CollectThread::set_sensor_config(int slave_id, int temp_reg, int humi_reg,
-        float temp_scale, float humi_scale, uint32_t interval_ms)
+    void CollectThread::set_sensors(std::vector<Sensor> sensors)
     {
-        slave_id_       =   slave_id;
-        temp_reg_       =   temp_reg;
-        humi_reg_       =   humi_reg;
-        temp_scale_     =   temp_scale;
-        humi_scale_     =   humi_scale;
-        interval_ms_    =   interval_ms;
+        for (auto& s:sensors)
+        {
+            SensorRuntime rt;
+            rt.config = std::move(s);
+
+            uint16_t min_addr = 0xFFFF, max_addr = 0;
+            for (const auto& ch : rt.config.channels)
+            {
+                if (min_addr > ch.register_addr) min_addr = ch.register_addr;
+                if (max_addr < ch.register_addr) max_addr = ch.register_addr;
+            }
+            rt.read_start = min_addr;
+            rt.read_count = max_addr - min_addr + 1;
+
+            sensors_.push_back(std::move(rt));
+        }
     }
 
     bool CollectThread::start()
@@ -57,20 +62,12 @@ namespace meimei{
             return false;
         }
 
-        modbus_.set_slave(slave_id_);
-        std::cout << "[CollectThread] 已连接: " << device_ 
-            << " 从站id: " << slave_id_ << std::endl;
-
-        csv_.open(config::CSV_DIR, config::CSV_INTERVAL_S, config::CSV_MAX_FILES);
-        csv_.force_record(0.0f, 0.0f);
+        csv_.open(config::CSV_DIR, config::CSV_MAX_FILES);
         
         running_ = true;
         thread_ = std::thread(&CollectThread::run, this);
 
-
-
         return true;
-
     }
 
     void CollectThread::stop()
@@ -81,6 +78,7 @@ namespace meimei{
         if(thread_.joinable())
             thread_.join();
         modbus_.disconnect();
+        csv_.close();
         std::cout << "[CollectThread] 已停止" << std::endl;
     }
 
@@ -99,51 +97,189 @@ namespace meimei{
         return current_humi_;
     }
 
+    std::vector<float> CollectThread::sample(const SensorRuntime& rt)
+    {
+        std::vector<uint16_t> buf(rt.read_count);
+
+        modbus_.set_slave(rt.config.slave_id);
+        if(!modbus_.read_holding_registers(rt.config.slave_id, rt.read_start, rt.read_count, buf.data()))
+        {
+            std::cout << "[CollectThread] 连接失败：" << modbus_.last_error() << std::endl;
+            return {};
+        }
+
+        std::vector<float> values;
+        //减少扩容开销
+        values.reserve(rt.config.channels.size());
+        for(const auto& ch:rt.config.channels)
+        {
+            uint16_t raw = buf[ch.register_addr - rt.read_start];
+            values.push_back( raw * ch.scale_factor + ch.offset);
+        }
+        return values;
+    }
+
     void CollectThread::run()
     {
-        std::cout << "[CollectedThread] 启动采集，间隔：" << interval_ms_ << " ms" <<std::endl;
+        using namespace std::chrono;
+
+        
+
+        // 正常输出参数（首窗结束后再对齐）
+        constexpr uint32_t step_ms = config::OUTPUT_INTERVAL_MS;
+        
+        uint64_t next_out_ms = 0;   // 首窗结束后再赋值
+        // const uint64_t first_step_ms = config::FIRST_WINDOW_SAMPLES * config::SAMPLE_INTERVAL_MS;
+        constexpr uint64_t expected_samples = step_ms / config::SAMPLE_INTERVAL_MS;
+        //向上取整
+        constexpr uint32_t min_sample   = (expected_samples * config::SAMPLE_TOLERANCE_PERCENT + config::SAMPLE_INTERVAL_MS -1 ) / config::SAMPLE_INTERVAL_MS;
+        constexpr uint32_t first_sample = config::FIREST_WINDOW_BOUNDARY_MS / config::SAMPLE_INTERVAL_MS;
+        constexpr uint32_t first_min = (first_sample * config::SAMPLE_TOLERANCE_PERCENT + config::SAMPLE_INTERVAL_MS - 1) / config::SAMPLE_INTERVAL_MS;
+        
+        bool        first_window_done = false;
+        uint32_t    first_sample_ms   = 0;
+
+        float temp_sum = 0, humi_sum = 0;
+        uint32_t temp_count = 0, humi_count = 0;
+        // uint32_t temp_total = 0, humi_total = 0;
+        uint64_t last_ts_ms = 0;
+
+        const auto& rt = sensors_[0];
+        const auto& ch0 = rt.config.channels[0];
+        const auto& ch1 = rt.config.channels[1];
+
+
+        std::cout << "[CollectThread] 采集启动， 快采样间隔 = " << config::SAMPLE_INTERVAL_MS << " ms, 输出间隔 =" 
+            << step_ms << " ms， 首窗采样时间 = " << config::FIREST_WINDOW_BOUNDARY_MS << " ms。" << std::endl;
+
+        uint64_t now_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+        const uint64_t first_boundary = config::FIREST_WINDOW_BOUNDARY_MS + now_ms;
+        constexpr auto sample_step = milliseconds(config::SAMPLE_INTERVAL_MS);
+        auto next_sample = steady_clock::now();
 
         while(running_)
         {
-            uint16_t buf[2];
+            // 快采样
+            auto values = sample(rt);
 
-            if( modbus_.read_holding_registers(slave_id_, temp_reg_, 2, buf))
+            now_ms = duration_cast<milliseconds>( system_clock::now().time_since_epoch()).count();
+
+            if(!values.empty())
             {
-                float temp = buf[0] * temp_scale_;
-                float humi = buf[1] * humi_scale_;
+                if(first_sample_ms == 0)
+                    first_sample_ms = now_ms;
+                
+                current_temp_ = values[0]; temp_sum += values[0]; temp_count++;
+                current_humi_ = values[1]; humi_sum += values[1]; humi_count++;
+                last_ts_ms = now_ms;
+            }
 
-                current_temp_ = temp;
-                current_humi_ = humi;
-
-                if (!first_csv_)
+            if(!first_window_done)
+            {   
+                float temp_avg = 0, humi_avg = 0;
+                if(now_ms >= first_boundary)
                 {
-                    csv_.force_record(temp, humi);
-                    first_csv_ = true;
+                    if(temp_count == 0)
+                    {
+                        LOG_WARN("首窗温度掉拍： " + std::to_string(temp_count) + " / " + std::to_string(first_sample));
+                    }
+                    else
+                    {
+                        temp_avg = temp_sum / temp_count;
+
+                        if(humi_count == 0)
+                        {
+                            LOG_WARN("首窗湿度掉拍： " + std::to_string(humi_count) + " / " + std::to_string(first_sample));
+                        }
+                        else
+                        {
+                            humi_avg = humi_sum / humi_count;
+
+                            if(temp_count < first_min)
+                                LOG_WARN("首窗温度掉拍： " + std::to_string(temp_count) + " / " + std::to_string(first_sample));
+                            if(humi_count < first_min)
+                                LOG_WARN("首窗湿度掉拍： " + std::to_string(humi_count) + " / " + std::to_string(first_sample));
+
+                            int64_t drift = (int64_t)last_ts_ms - (int64_t)first_boundary;
+                            if(drift > (int64_t)config::TIME_TOLERANCE_MS || drift < -(int64_t)config::TIME_TOLERANCE_MS)
+                                LOG_WARN("首窗时间偏差：" + std::to_string(drift)+ " ms");
+
+                            csv_.record(first_boundary, temp_avg, humi_avg);
+
+                            if(temp_avg > ch0.alarm_high) LOG_WARN("温度过高： " + std::to_string(temp_avg) + " 摄氏度");
+                            if(temp_avg < ch0.alarm_low)  LOG_WARN("温度过低： " + std::to_string(temp_avg) + " 摄氏度");
+                            if(humi_avg > ch1.alarm_high) LOG_WARN("湿度过高： " + std::to_string(humi_avg) + " %RH");
+                            if(humi_avg < ch1.alarm_low)  LOG_WARN("湿度过低： " + std::to_string(humi_avg) + " %RH");
+
+                            std::cout << "[CollectThread] 首窗： T = " << temp_avg << " ℃ " << "H = " << humi_avg << "%RH"
+                                << "（T 采样数量：" << temp_count << " / " << first_min << " ）" << std::endl;
+                        }
+                    }
+
+                    first_window_done = true;
+                    next_out_ms = (now_ms / step_ms) * step_ms + step_ms;
+
+                    temp_sum = humi_sum = temp_count = humi_count = 0;
                 }
-                else
-                {
-                    csv_.try_record(temp, humi);
-                }
-
-                // 告警
-                if (temp > temp_high_)
-                    LOG_WARN("温度过高: " + std::to_string(temp) + " ℃");
-                if (temp < temp_low_)
-                    LOG_WARN("温度过低: " + std::to_string(temp) + " ℃");
-
-            
-
-            std::cout << "[采集] 温度： " << current_temp_ << " ℃" 
-                << " 湿度： "<< current_humi_ << " %RH" << std::endl;
             }
             else
-            {
-                std::cerr << "[CollectThread] 读取失败: " << modbus_.last_error() << std::endl;
+            {   
+                float temp_avg = 0, humi_avg = 0;
+                if(now_ms >= next_out_ms)
+                {
+                    if(temp_count == 0)
+                    {
+                        LOG_WARN("温度掉拍： " + std::to_string(temp_count) + " / " + std::to_string(expected_samples));
+                    }
+                    else
+                    {
+                        temp_avg = temp_sum / temp_count;
+
+                        if(humi_count == 0)
+                        {
+                            LOG_WARN("湿度掉拍： " + std::to_string(humi_count) + " / " + std::to_string(expected_samples));
+                        }
+                        else
+                        {
+                            humi_avg = humi_sum / humi_count;
+
+                            if(temp_count < min_sample)
+                                LOG_WARN("温度掉拍： " + std::to_string(temp_count) + " / " + std::to_string(expected_samples));
+                            if(humi_count < min_sample)
+                                LOG_WARN("湿度掉拍： " + std::to_string(humi_count) + " / " + std::to_string(expected_samples));
+
+                            int64_t drift = (int64_t)last_ts_ms - (int64_t)next_out_ms;
+                            if(drift > (int64_t)config::TIME_TOLERANCE_MS || drift < -(int64_t)config::TIME_TOLERANCE_MS)
+                                LOG_WARN("时间偏差：" + std::to_string(drift)+ " ms");
+
+                            csv_.record(next_out_ms, temp_avg, humi_avg);
+
+                            if(temp_avg > ch0.alarm_high) LOG_WARN("温度过高： " + std::to_string(temp_avg) + " 摄氏度");
+                            if(temp_avg < ch0.alarm_low)  LOG_WARN("温度过低： " + std::to_string(temp_avg) + " 摄氏度");
+                            if(humi_avg > ch1.alarm_high) LOG_WARN("湿度过高： " + std::to_string(humi_avg) + " %RH");
+                            if(humi_avg < ch1.alarm_low)  LOG_WARN("湿度过低： " + std::to_string(humi_avg) + " %RH");
+
+                            std::cout << "[CollectThread] 检测结果： T = " << temp_avg << " ℃ " << "H = " << humi_avg << "%RH"
+                                << "（T 采样数量：" << temp_count << " / " << min_sample << " ）" << std::endl;
+                        }
+                    }
+
+                    next_out_ms = (now_ms / step_ms) * step_ms + step_ms;
+                    temp_sum = humi_sum = temp_count = humi_count = 0;
+                }
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms_));
-            
+            auto steady_now = steady_clock::now();
+            auto since_ms   = duration_cast<milliseconds>(steady_now.time_since_epoch());
+            next_sample = steady_clock::time_point(
+                since_ms - (since_ms % sample_step) + sample_step
+            );
+            std::this_thread::sleep_until(next_sample);
+
         }
+
+
+        
     }
 
 

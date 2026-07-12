@@ -36,12 +36,31 @@ int main()
                        meimei::config::MODBUS_PARITY, meimei::config::MODBUS_DATA_BITS,
                        meimei::config::MODBUS_STOP_BITS);
 
-    collect.set_sensor_config(meimei::config::SENSOR_SLAVE_ID,
-                              meimei::config::SENSOR_TEMP_REG,
-                              meimei::config::SENSOR_HUMI_REG,
-                              meimei::config::SENSOR_TEMP_SCALE,
-                              meimei::config::SENSOR_HUMI_SCALE,
-                              meimei::config::SENSOR_INTERVAL_MS);
+    // 构造传感器配置（温湿度是同一从站的两个通道）
+    meimei::Sensor th_sensor;
+    th_sensor.id       = 1;
+    th_sensor.name     = "TH Sensor";
+    th_sensor.slave_id = meimei::config::THSENS_SLAVE_ID;
+    th_sensor.channels = {
+        {
+            static_cast<uint16_t>(meimei::config::SENSOR_TEMP_REG),
+            meimei::config::SENSOR_TEMP_SCALE,
+            meimei::config::SENSOR_TEMP_OFFSET,
+            meimei::config::TEMP_UNIT,
+            meimei::config::ALARM_TEMP_HIGH,
+            meimei::config::ALARM_TEMP_LOW
+        },
+        {
+            static_cast<uint16_t>(meimei::config::SENSOR_HUMI_REG),
+            meimei::config::SENSOR_HUMI_SCALE,
+            meimei::config::SENSOR_HUMI_OFFSET,
+            meimei::config::HUMI_UNIT,
+            meimei::config::ALARM_HUMI_HIGH,
+            meimei::config::ALARM_HUMI_LOW
+        }
+    };
+
+    collect.set_sensors({std::move(th_sensor)});
 
     g_collect = &collect;
 
