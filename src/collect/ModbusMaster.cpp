@@ -86,7 +86,9 @@ namespace meimei{
         {
             last_error_ = std::string("modbus_connect 失败：") + modbus_strerror(errno);
             modbus_free(ctx_);
-            return false; 
+            ctx_ = nullptr;
+            connected_ = false;
+            return false;
         }
 
         connected_ = true;

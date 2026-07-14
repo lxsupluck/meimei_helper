@@ -133,7 +133,7 @@ namespace meimei{
         constexpr uint64_t expected_samples = step_ms / config::SAMPLE_INTERVAL_MS;
         //向上取整
         constexpr uint32_t min_sample   = (expected_samples * config::SAMPLE_TOLERANCE_PERCENT + config::SAMPLE_INTERVAL_MS -1 ) / config::SAMPLE_INTERVAL_MS;
-        constexpr uint32_t first_sample = config::FIREST_WINDOW_BOUNDARY_MS / config::SAMPLE_INTERVAL_MS;
+        constexpr uint32_t first_sample = config::FIRST_WINDOW_BOUNDARY_MS / config::SAMPLE_INTERVAL_MS;
         constexpr uint32_t first_min = (first_sample * config::SAMPLE_TOLERANCE_PERCENT + config::SAMPLE_INTERVAL_MS - 1) / config::SAMPLE_INTERVAL_MS;
         
         bool        first_window_done = false;
@@ -150,10 +150,10 @@ namespace meimei{
 
 
         std::cout << "[CollectThread] 采集启动， 快采样间隔 = " << config::SAMPLE_INTERVAL_MS << " ms, 输出间隔 =" 
-            << step_ms << " ms， 首窗采样时间 = " << config::FIREST_WINDOW_BOUNDARY_MS << " ms。" << std::endl;
+            << step_ms << " ms， 首窗采样时间 = " << config::FIRST_WINDOW_BOUNDARY_MS << " ms。" << std::endl;
 
         uint64_t now_ms = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-        const uint64_t first_boundary = config::FIREST_WINDOW_BOUNDARY_MS + now_ms;
+        const uint64_t first_boundary = config::FIRST_WINDOW_BOUNDARY_MS + now_ms;
         constexpr auto sample_step = milliseconds(config::SAMPLE_INTERVAL_MS);
         auto next_sample = steady_clock::now();
 

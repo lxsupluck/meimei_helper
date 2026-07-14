@@ -42,7 +42,7 @@ constexpr uint32_t SAMPLE_INTERVAL_MS = 100;        //快采样
 constexpr uint32_t OUTPUT_INTERVAL_MS = 5000;       //慢采样
 constexpr uint32_t TIME_TOLERANCE_MS   = 90;   // 时间容忍
 constexpr uint32_t SAMPLE_TOLERANCE_PERCENT = 90;   // 采样容忍
-constexpr uint32_t FIREST_WINDOW_BOUNDARY_MS = 1000;       // 首个输出窗口样本数
+constexpr uint32_t FIRST_WINDOW_BOUNDARY_MS = 1000;       // 首个输出窗口样本数
 
 
 // ============================================================
