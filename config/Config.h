@@ -13,9 +13,9 @@ constexpr const char* LOG_FILE_PATH = "./meimei.log";
 constexpr LogLevel    LOG_LEVEL     = LogLevel::DEBUG;
 
 // ============================================================
-// RS485 / Modbus 串口
+// RS485 / Modbus 串口（温湿度传感器）
 // ============================================================
-constexpr const char* MODBUS_DEVICE    = "/dev/ttyUSB0";
+constexpr const char* MODBUS_DEVICE = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0";
 constexpr int         MODBUS_BAUD      = 9600;
 constexpr char        MODBUS_PARITY    = 'N';
 constexpr int         MODBUS_DATA_BITS = 8;
@@ -48,11 +48,11 @@ constexpr uint32_t FIRST_WINDOW_BOUNDARY_MS = 1000;       // 首个输出窗口�
 // ============================================================
 // 温湿度度告警阈值
 // ============================================================
-constexpr float ALARM_TEMP_HIGH = 29.0f;
+constexpr float ALARM_TEMP_HIGH = 30.0f;
 constexpr float ALARM_TEMP_LOW  = 5.0f;
 
-constexpr float ALARM_HUMI_HIGH = 65.0f;
-constexpr float ALARM_HUMI_LOW  = 45.0f;
+constexpr float ALARM_HUMI_HIGH = 80.0f;
+constexpr float ALARM_HUMI_LOW  = 40.0f;
 
 // ============================================================
 // CSV 数据记录
@@ -61,10 +61,15 @@ constexpr const char* CSV_DIR          = "./log";
 constexpr int         CSV_MAX_FILES    = 30;
 
 // ============================================================
-// 看门狗（预留）
+// 看门狗
 // ============================================================
-constexpr uint32_t WDT_INTERVAL_MS = 1000;
-constexpr int      WDT_GPIO_PIN    = 17;
+constexpr const char* WDT_DEVICE       = "/dev/serial/by-id/usb-1a86_USB2.0-Serial-if00-port0";
+constexpr int         WDT_BAUD         = 9600;
+constexpr char        WDT_PARITY       = 'N';
+constexpr int         WDT_DATA_BITS    = 8;
+constexpr int         WDT_STOP_BITS    = 1;
+constexpr uint32_t    WDT_INTERVAL_MS  = 1000;
+constexpr int         WDT_GPIO_PIN     = 17;  // GPIO 看门狗（预留）
 
 // ============================================================
 // MQTT（预留）
@@ -75,11 +80,14 @@ constexpr const char* MQTT_CLIENT_ID = "meimei_helper_001";
 constexpr const char* MQTT_TOPIC     = "factory/line1/device001";
 
 // ============================================================
-// 语音（预留）
+// 语音
 // ============================================================
-constexpr const char* STT_API_URL = "https://api.example.com/stt";
-constexpr const char* LLM_API_URL = "https://api.example.com/llm";
-constexpr const char* TTS_API_URL = "https://api.example.com/tts";
+constexpr const char* STT_API_URL  = "https://iat-api.xfyun.cn/v2/iat";
+constexpr const char* STT_APP_ID   = "8df157d3";
+constexpr const char* STT_API_KEY  = "a65109a3a4454e6d4bbd6db294f7ae5a";
+constexpr const char* LLM_API_URL  = "https://api.example.com/llm";
+constexpr const char* TTS_API_URL  = "https://api.example.com/tts";
+constexpr const char* AUDIO_DEVICE = "plughw:1,0";  // USB 麦克风
 
 }  // namespace config
 }  // namespace meimei

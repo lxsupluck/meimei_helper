@@ -212,7 +212,7 @@ namespace meimei{
                             if(humi_avg < ch1.alarm_low)  LOG_WARN("湿度过低： " + std::to_string(humi_avg) + " %RH");
 
                             std::cout << "[CollectThread] 首窗： T = " << temp_avg << " ℃ " << "H = " << humi_avg << "%RH"
-                                << "（T 采样数量：" << temp_count << " / " << first_min << " ）" << std::endl;
+                                << "（采样数量：" << temp_count << " / " << first_sample << " ）" << std::endl;
                         }
                     }
 
@@ -260,7 +260,7 @@ namespace meimei{
                             if(humi_avg < ch1.alarm_low)  LOG_WARN("湿度过低： " + std::to_string(humi_avg) + " %RH");
 
                             std::cout << "[CollectThread] 检测结果： T = " << temp_avg << " ℃ " << "H = " << humi_avg << "%RH"
-                                << "（T 采样数量：" << temp_count << " / " << min_sample << " ）" << std::endl;
+                                << "（采样数量：" << temp_count << " / " << expected_samples << " ）" << std::endl;
                         }
                     }
 

@@ -1,5 +1,5 @@
 set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR arm)
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
 
 # 交叉编译器前缀
 set(TOOLCHAIN_PREFIX aarch64-linux-gnu)

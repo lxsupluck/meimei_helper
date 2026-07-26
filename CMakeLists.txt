@@ -8,10 +8,23 @@ find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBMODBUS REQUIRED libmodbus)
 
+# 语音依赖 — x64 和 rpi 各自加载
+if(DEFINED ARCH AND ARCH STREQUAL "rpi")
+    include(cmake/deps_rpi.cmake)
+else()
+    include(cmake/deps_x64.cmake)
+endif()
+
 add_subdirectory(src)
 
 add_executable(meimei_helper src/main.cpp)
-target_link_libraries(meimei_helper PRIVATE meimei_common meimei_logger meimei_collect Threads::Threads)
+target_link_libraries(meimei_helper PRIVATE
+    meimei_common
+    meimei_logger
+    meimei_collect
+    meimei_voice
+    Threads::Threads
+)
 
 target_include_directories(meimei_helper PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

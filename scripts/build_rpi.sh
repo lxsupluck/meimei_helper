@@ -5,7 +5,7 @@ TARGET="lx@192.168.1.20:/home/lx/helper"
 PASSWD="lx123456"
 
 cd "$(dirname "$0")/../build_rpi"
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain_rpi.cmake
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain_rpi.cmake -DARCH=rpi
 make -j$(nproc)
 echo ""
 echo "=== 交叉编译完成 ==="
