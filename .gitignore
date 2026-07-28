@@ -5,3 +5,5 @@ build_rpi/
 *.swp
 .vscode/
 docs/
+rpi-sysroot/
+config/Config.h

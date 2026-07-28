@@ -37,20 +37,17 @@ constexpr const char* HUMI_UNIT = "%RH";
 // ============================================================
 // 数据采集
 // ============================================================
-
-constexpr uint32_t SAMPLE_INTERVAL_MS = 100;        //快采样
-constexpr uint32_t OUTPUT_INTERVAL_MS = 5000;       //慢采样
-constexpr uint32_t TIME_TOLERANCE_MS   = 90;   // 时间容忍
-constexpr uint32_t SAMPLE_TOLERANCE_PERCENT = 90;   // 采样容忍
-constexpr uint32_t FIRST_WINDOW_BOUNDARY_MS = 1000;       // 首个输出窗口样本数
-
+constexpr uint32_t SAMPLE_INTERVAL_MS = 100;
+constexpr uint32_t OUTPUT_INTERVAL_MS = 5000;
+constexpr uint32_t TIME_TOLERANCE_MS   = 90;
+constexpr uint32_t SAMPLE_TOLERANCE_PERCENT = 90;
+constexpr uint32_t FIRST_WINDOW_BOUNDARY_MS = 1000;
 
 // ============================================================
 // 温湿度度告警阈值
 // ============================================================
 constexpr float ALARM_TEMP_HIGH = 30.0f;
 constexpr float ALARM_TEMP_LOW  = 5.0f;
-
 constexpr float ALARM_HUMI_HIGH = 80.0f;
 constexpr float ALARM_HUMI_LOW  = 40.0f;
 
@@ -69,7 +66,7 @@ constexpr char        WDT_PARITY       = 'N';
 constexpr int         WDT_DATA_BITS    = 8;
 constexpr int         WDT_STOP_BITS    = 1;
 constexpr uint32_t    WDT_INTERVAL_MS  = 1000;
-constexpr int         WDT_GPIO_PIN     = 17;  // GPIO 看门狗（预留）
+constexpr int         WDT_GPIO_PIN     = 17;
 
 // ============================================================
 // MQTT（预留）
@@ -82,12 +79,13 @@ constexpr const char* MQTT_TOPIC     = "factory/line1/device001";
 // ============================================================
 // 语音
 // ============================================================
+// ⚠ 复制为 Config.h 后填入真实密钥，Config.h 已在 .gitignore 中
 constexpr const char* STT_API_URL  = "https://iat-api.xfyun.cn/v2/iat";
-constexpr const char* STT_APP_ID   = "8df157d3";
-constexpr const char* STT_API_KEY  = "a65109a3a4454e6d4bbd6db294f7ae5a";
+constexpr const char* STT_APP_ID   = "YOUR_APP_ID";
+constexpr const char* STT_API_KEY  = "YOUR_API_KEY";
 constexpr const char* LLM_API_URL  = "https://api.example.com/llm";
 constexpr const char* TTS_API_URL  = "https://api.example.com/tts";
-constexpr const char* AUDIO_DEVICE = "plughw:1,0";  // USB 麦克风
+constexpr const char* AUDIO_DEVICE = "plughw:1,0";
 
 }  // namespace config
 }  // namespace meimei
