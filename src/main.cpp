@@ -53,6 +53,18 @@ int main()
           meimei::config::ALARM_HUMI_HIGH, meimei::config::ALARM_HUMI_LOW }
     };
 
+    meimei::voice::VoiceRecorder::Config rec_cfg;
+    
+    rec_cfg = {
+        meimei::config::AUDIO_DEVICE,
+        meimei::config::SMAPLE_RATE,
+        meimei::config::SILENCE_TIMEOUT_MS,
+        meimei::config::MAX_RECORD_MS,
+        meimei::config::SPEECH_THRESHOLE,
+        meimei::config::OUTPUT_DIR,
+
+    };
+
     collect.set_sensors({std::move(th_sensor)});
     g_collect = &collect;
 
@@ -63,7 +75,7 @@ int main()
 
     // ── 配置语音线程 ──
     meimei::voice::VoiceThread voice;
-    if (!voice.init("/tmp", meimei::config::AUDIO_DEVICE)) {
+    if (!voice.init(rec_cfg, meimei::config::AUDIO_DEVICE)) {
         std::cerr << "语音初始化失败" << std::endl;
     } else {
         g_voice = &voice;

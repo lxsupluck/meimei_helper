@@ -1,12 +1,10 @@
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
 
-# 交叉编译器前缀
-set(TOOLCHAIN_PREFIX aarch64-linux-gnu)
-set(CMAKE_C_COMPILER   ${TOOLCHAIN_PREFIX}-gcc)
-set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}-g++)
+# GCC 12 交叉编译器
+set(CMAKE_C_COMPILER   aarch64-linux-gnu-gcc-12)
+set(CMAKE_CXX_COMPILER aarch64-linux-gnu-g++-12)
 
-# 构建时在本机找程序（如 cmake 内部工具），运行时在目标找库
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)

@@ -20,7 +20,7 @@ public:
     VoiceThread(const VoiceThread&) = delete;
 
     // 初始化录音器，output_dir 为 WAV 保存目录
-    bool init(const std::string& output_dir, const std::string& audio_device);
+    bool init(VoiceRecorder::Config rec_cfg, const std::string& audio_device);
 
     bool start();
     void stop();

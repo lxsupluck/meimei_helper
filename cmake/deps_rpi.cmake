@@ -1,11 +1,14 @@
-# deps_rpi.cmake — ARM64 交叉编译依赖
-# 交叉编译器自动在 /usr/aarch64-linux-gnu/ 下找库
+# deps_rpi.cmake — ARM64 交叉编译依赖（Ubuntu 22.04 多架构）
 
-set(CURL_INCLUDE_DIRS    /usr/aarch64-linux-gnu/include)
-set(CURL_LIBRARIES       curl)
+set(LIBMODBUS_INCLUDE_DIRS /usr/include/modbus)
+set(LIBMODBUS_LIBRARIES    /usr/lib/aarch64-linux-gnu/libmodbus.so)
 
-set(OPENSSL_INCLUDE_DIR  /usr/aarch64-linux-gnu/include)
-set(OPENSSL_LIBRARIES    ssl crypto)
+set(CURL_INCLUDE_DIRS      /usr/include/aarch64-linux-gnu)
+set(CURL_LIBRARIES         /usr/lib/aarch64-linux-gnu/libcurl.so)
 
-set(ALSA_INCLUDE_DIRS    /usr/aarch64-linux-gnu/include)
-set(ALSA_LIBRARIES       asound)
+set(OPENSSL_INCLUDE_DIR    /usr/include)
+set(OPENSSL_LIBRARIES      /usr/lib/aarch64-linux-gnu/libssl.a
+                           /usr/lib/aarch64-linux-gnu/libcrypto.a)
+
+set(ALSA_INCLUDE_DIRS      /usr/include)
+set(ALSA_LIBRARIES         /usr/lib/aarch64-linux-gnu/libasound.so)

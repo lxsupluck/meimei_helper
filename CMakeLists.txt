@@ -5,10 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Threads REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBMODBUS REQUIRED libmodbus)
 
-# 语音依赖 — x64 和 rpi 各自加载
+# 所有依赖 — x64 和 rpi 各自加载
 if(DEFINED ARCH AND ARCH STREQUAL "rpi")
     include(cmake/deps_rpi.cmake)
 else()

@@ -5,15 +5,9 @@
 namespace meimei {
 namespace voice {
 
-bool VoiceThread::init(const std::string& output_dir, const std::string& audio_device)
+bool VoiceThread::init(VoiceRecorder::Config rec_cfg, const std::string& audio_device)
 {
-    output_dir_ = output_dir;
-
-    VoiceRecorder::Config rec_cfg;
-    rec_cfg.device             = audio_device;
-    rec_cfg.sample_rate        = 16000;
-    rec_cfg.silence_timeout_ms = 1500;
-    rec_cfg.max_record_ms      = 20000;
+    output_dir_ = rec_cfg.output_dir;
 
     if (!recorder_.init(rec_cfg)) {
         std::cerr << "[VoiceThread] 录音器初始化失败" << std::endl;

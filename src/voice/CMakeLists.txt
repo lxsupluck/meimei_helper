@@ -9,7 +9,7 @@ target_include_directories(meimei_voice PUBLIC
     ${CMAKE_SOURCE_DIR}/config
 )
 
-target_include_directories(meimei_voice PRIVATE
+target_include_directories(meimei_voice PUBLIC
     ${CURL_INCLUDE_DIRS}
     ${OPENSSL_INCLUDE_DIR}
     ${ALSA_INCLUDE_DIRS}

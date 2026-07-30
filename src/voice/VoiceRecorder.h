@@ -19,11 +19,12 @@ class VoiceRecorder
 public:
     struct Config
     {
-        std::string device            = "default";
-        unsigned int sample_rate       = 16000;        // 16kHz
-        uint32_t    silence_timeout_ms = 1500;         // 静音 1.5s 判定说完
-        uint32_t    max_record_ms      = 20000;        // 最长录 20s 兜底
-        double      speech_threshold   = 300.0;        // RMS 能量阈值
+        std::string device              = "default";
+        unsigned int sample_rate        = 16000;        // 16kHz
+        uint32_t    silence_timeout_ms  = 1500;         // 静音 1.5s 判定说完
+        uint32_t    max_record_ms       = 20000;        // 最长录 20s 兜底
+        double      speech_threshold    = 300.0;        // RMS 能量阈值
+        std::string output_dir          = "/home/lx/helper/voice_temp/";
     };
 
     VoiceRecorder() = default;
