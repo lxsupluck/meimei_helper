@@ -75,10 +75,16 @@ namespace meimei
 
         }
 
-        std::string VoiceRecorder::record(const std::string& output_dir)
+        void VoiceRecorder::request_stop()
+        {
+            stop_req_.store(true, std::memory_order_release);
+        }
+
+        std::string VoiceRecorder::record()
         {
             if (!ok_) return {};
 
+            stop_req_.store(false, std::memory_order_release);
             const uint16_t rate = cfg_.sample_rate;
             const size_t chunk_sample = rate / 10;
             const uint32_t chunk_max = cfg_.max_record_ms / 100;
@@ -98,6 +104,11 @@ namespace meimei
 
             while(total_chunks < chunk_max)
             {
+                if (stop_req_.load(std::memory_order_acquire)) {
+                    std::cout << "[VoiceRecorder] 收到停止请求" << std::endl;
+                    break;
+                }
+
                 int rc = snd_pcm_readi(pcm_, chunk.data(), chunk_sample);
                 if (rc < 0) 
                 {
@@ -108,13 +119,18 @@ namespace meimei
                 size_t n = static_cast<size_t>(rc);
                 double r = rms_energy(chunk.data(), n);
 
+                // 流式模式：回调通知
+                if (cfg_.on_audio)
+                    cfg_.on_audio(chunk.data(), n);
+
                 if(state == WAITING)
                 {   
                     if (r > cfg_.speech_threshold)
                     {
                         state = RECORDING;
                         std::cout << "[VoiceRecorder] 检测到语音输入 " << std::endl;
-                        buffer.insert(buffer.end(), chunk.begin(), chunk.begin()+n);
+                        if (!cfg_.on_audio || cfg_.debug_save)
+                            buffer.insert(buffer.end(), chunk.begin(), chunk.begin()+n);
                         total_chunks = 1;
                         silence_count = 0;
                     }
@@ -122,7 +138,8 @@ namespace meimei
                 }
 
 
-                buffer.insert(buffer.end(), chunk.begin(), chunk.begin() + n);
+                if (!cfg_.on_audio || cfg_.debug_save)
+                    buffer.insert(buffer.end(), chunk.begin(), chunk.begin() + n);
                 total_chunks++;
 
                 if(r < cfg_.speech_threshold)
@@ -137,12 +154,16 @@ namespace meimei
                 }
             }
 
+            // 纯流式（不存 WAV）→ 直接返回
+            if (cfg_.on_audio && !cfg_.debug_save && buffer.empty())
+                return {};
+
             if (buffer.empty()) return{};
 
             auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()
             ).count();
-            std::string path = output_dir + "/voice_" + std::to_string(ts) + ".wav";
+            std::string path = cfg_.output_dir + "voice_" + std::to_string(ts) + ".wav";
 
             FILE* fp = fopen(path.c_str(), "wb");
             if(!fp) return{};

@@ -36,9 +36,10 @@ namespace meimei{
     {
         INIT = 0,
         RUNNING = 1,
-        FAULT = 2,
-        UPGRADE = 3,
-        SHUTDOWN = 4,
+        DEBUG = 2,
+        FAULT = 3,
+        UPGRADE = 4,
+        SHUTDOWN = 5,
     };
 
 

@@ -14,15 +14,23 @@
 meimei::CollectThread*      g_collect = nullptr;
 meimei::voice::VoiceThread* g_voice   = nullptr;
 
-void signal_handler(int sig)
+// 系统状态
+static std::atomic<meimei::SystemState> g_state{meimei::SystemState::INIT};
+
+void signal_handler(int /*sig*/)
 {
-    std::cout << "\n收到信号 " << sig << "，正在退出..." << std::endl;
-    if (g_voice)   g_voice->stop();
-    if (g_collect) g_collect->stop();
+    // 只做 async-signal-safe 的操作：设置原子标志
+    // 实际的 stop/join 由主循环后处理，避免 Resource deadlock avoided
+    g_state.store(meimei::SystemState::SHUTDOWN, std::memory_order_release);
 }
 
 int main()
 {
+    // ============================================
+    // INIT 阶段
+    // ============================================
+    g_state.store(meimei::SystemState::INIT);
+
     meimei::Logger::Instance().init(meimei::config::LOG_FILE_PATH,
                                      meimei::config::LOG_LEVEL);
     LOG_INFO("莓莓助手 启动成功！！！");
@@ -33,7 +41,6 @@ int main()
 
     // ── 配置采集线程 ──
     meimei::CollectThread collect;
-
     collect.set_device(meimei::config::MODBUS_DEVICE, meimei::config::MODBUS_BAUD,
                        meimei::config::MODBUS_PARITY, meimei::config::MODBUS_DATA_BITS,
                        meimei::config::MODBUS_STOP_BITS);
@@ -53,18 +60,6 @@ int main()
           meimei::config::ALARM_HUMI_HIGH, meimei::config::ALARM_HUMI_LOW }
     };
 
-    meimei::voice::VoiceRecorder::Config rec_cfg;
-    
-    rec_cfg = {
-        meimei::config::AUDIO_DEVICE,
-        meimei::config::SMAPLE_RATE,
-        meimei::config::SILENCE_TIMEOUT_MS,
-        meimei::config::MAX_RECORD_MS,
-        meimei::config::SPEECH_THRESHOLE,
-        meimei::config::OUTPUT_DIR,
-
-    };
-
     collect.set_sensors({std::move(th_sensor)});
     g_collect = &collect;
 
@@ -75,6 +70,14 @@ int main()
 
     // ── 配置语音线程 ──
     meimei::voice::VoiceThread voice;
+    meimei::voice::VoiceRecorder::Config rec_cfg;
+    rec_cfg.device            = meimei::config::AUDIO_DEVICE;
+    rec_cfg.sample_rate       = meimei::config::SAMPLE_RATE;
+    rec_cfg.silence_timeout_ms = meimei::config::SILENCE_TIMEOUT_MS;
+    rec_cfg.max_record_ms     = meimei::config::MAX_RECORD_MS;
+    rec_cfg.speech_threshold  = meimei::config::SPEECH_THRESHOLD;
+    rec_cfg.output_dir        = meimei::config::OUTPUT_DIR;
+
     if (!voice.init(rec_cfg, meimei::config::AUDIO_DEVICE)) {
         std::cerr << "语音初始化失败" << std::endl;
     } else {
@@ -82,11 +85,25 @@ int main()
         voice.start();
     }
 
-    // 主循环
-    while (collect.is_running()) {
+    // ============================================
+    // RUNNING / DEBUG 阶段
+    // ============================================
+    g_state.store(meimei::SystemState::DEBUG);
+
+    while (collect.is_running() &&
+           g_state.load(std::memory_order_acquire) != meimei::SystemState::SHUTDOWN) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         meimei::Logger::Instance().tick();
     }
+
+    if (g_state.load() == meimei::SystemState::SHUTDOWN) {
+        std::cout << "\n收到退出信号，正在关闭..." << std::endl;
+    }
+
+    // ============================================
+    // SHUTDOWN 阶段
+    // ============================================
+    g_state.store(meimei::SystemState::SHUTDOWN);
 
     voice.stop();
     collect.stop();
